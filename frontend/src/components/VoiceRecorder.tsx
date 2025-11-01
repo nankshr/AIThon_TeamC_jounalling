@@ -390,20 +390,6 @@ export function VoiceRecorder({
           )}
         </div>
 
-        {/* Language Selector */}
-        {!isRecording && audioUrl && (
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="text-sm border border-gray-300 rounded px-2 py-1 hover:border-gray-400"
-            title="Select language"
-            disabled={isTranscribing}
-          >
-            <option value="en">English</option>
-            <option value="ta">Tamil</option>
-            <option value="hi">Hindi</option>
-          </select>
-        )}
       </div>
       )}
 
@@ -462,22 +448,6 @@ export function VoiceRecorder({
                   />
                 </div>
               )}
-
-              {/* Language Selector */}
-              <div className="mt-3">
-                <label className="text-xs font-medium text-blue-900 block mb-1">Audio Language:</label>
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full text-sm border border-blue-300 rounded px-2 py-1 hover:border-blue-400"
-                  title="Select language"
-                  disabled={isTranscribing}
-                >
-                  <option value="en">English</option>
-                  <option value="ta">Tamil</option>
-                  <option value="hi">Hindi</option>
-                </select>
-              </div>
 
               {/* Submit Button */}
               <button
