@@ -97,9 +97,9 @@ async def search_entries(request: SearchRequest) -> SearchResponse:
         logger.info(f"Searching for: {request.query[:100]}... (top_k={request.top_k})")
 
         # Import database session
-        from app.services.database import get_db_session
+        from app.services.database import AsyncSessionLocal
 
-        async with get_db_session() as session:
+        async with AsyncSessionLocal() as session:
             from sqlalchemy import select
             from app.models.journal import JournalEntry
 
