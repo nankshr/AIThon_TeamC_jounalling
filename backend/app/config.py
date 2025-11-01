@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     database_url: str
 
     # API Keys
-    anthropic_api_key: str
     openai_api_key: str
+    anthropic_api_key: Optional[str] = None
 
     # Security
     secret_key: str

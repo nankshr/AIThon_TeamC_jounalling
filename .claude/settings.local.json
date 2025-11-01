@@ -12,7 +12,14 @@
       "Bash(touch:*)",
       "Bash(poetry run alembic:*)",
       "Bash(poetry run python:*)",
-      "Bash(timeout 5 poetry run uvicorn:*)"
+      "Bash(timeout 5 poetry run uvicorn:*)",
+      "Bash(timeout 10 poetry run uvicorn:*)",
+      "Bash(awk:*)",
+      "Bash(poetry run pytest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(xargs:*)",
+      "Bash(poetry show:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

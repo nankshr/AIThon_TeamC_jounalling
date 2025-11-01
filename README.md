@@ -2,6 +2,9 @@
 
 A complete AI-powered wedding journal application for intelligent planning and journaling.
 
+**Status:** ✅ 50% Complete (Weeks 2-3 Done, Weeks 4-8 Pending)
+**Features:** Voice recording, Whisper transcription, GPT-4 entity extraction
+
 ## Quick Start
 
 ### Prerequisites
@@ -19,18 +22,18 @@ poetry install
 
 2. **Create and configure `.env`:**
 ```bash
-cp .env.example .env
 # Edit .env with your database URL and API keys
 ```
 
 Configure with your cloud PostgreSQL:
 ```
 DATABASE_URL=postgresql+asyncpg://username:password@host:port/wedding_journal
-ANTHROPIC_API_KEY=your_anthropic_key
 OPENAI_API_KEY=your_openai_key
 SECRET_KEY=your-secret-key
 DEBUG=True
 ```
+
+**Note:** Only OPENAI_API_KEY is required (Anthropic is optional)
 
 3. **Initialize database:**
 ```bash
@@ -92,15 +95,35 @@ frontend/
 
 ## Key Features (MVP)
 
-- ✅ Journal entry creation (text-based)
+### Completed ✅
+- ✅ Voice recording with playback
+- ✅ Audio transcription (Whisper API)
+- ✅ Entity extraction (vendors, venues, costs, dates, people)
+- ✅ Task detection (explicit + implicit)
+- ✅ Sentiment analysis (emotion + confidence)
+- ✅ Multi-language support (English, Tamil, Hindi)
+- ✅ Journal entry creation
 - ✅ Task management
 - ✅ User preferences tracking
 - ✅ Timeline awareness (pre/post-wedding)
-- ⏳ AI entity extraction (coming next)
+
+### Pending ⏳
 - ⏳ Semantic search (RAG implementation)
-- ⏳ Voice transcription
+- ⏳ Memory Agent (Week 4)
+- ⏳ Insight Agent (Week 5)
+- ⏳ Advanced search UI (Week 6)
 
 ## API Endpoints
+
+### Transcription (Week 2)
+- `POST /api/transcription/transcribe` - Audio to text
+- `GET /api/transcription/detect-language` - Auto-detect language
+
+### Entry Processing (Week 3)
+- `POST /api/journal/entries` - Full processing (extract all data)
+- `POST /api/journal/entries/{id}/extract-entities` - Extract entities only
+- `POST /api/journal/entries/{id}/extract-tasks` - Extract tasks only
+- `POST /api/journal/entries/{id}/analyze-sentiment` - Sentiment only
 
 ### Journal
 - `POST /api/journal/entry` - Create entry
@@ -177,26 +200,38 @@ poetry run alembic downgrade -1
 
 **Backend (.env):**
 - `DATABASE_URL`: PostgreSQL connection string
-- `ANTHROPIC_API_KEY`: Claude API key
-- `OPENAI_API_KEY`: OpenAI key
+- `OPENAI_API_KEY`: OpenAI API key (REQUIRED)
 - `SECRET_KEY`: App secret key
 - `DEBUG`: Debug mode (True/False)
+- `ANTHROPIC_API_KEY`: (Optional - not currently used)
 
 **Frontend (.env.local):**
 - `NEXT_PUBLIC_API_URL`: Backend URL (default: http://localhost:8000)
 
 ## Next Steps
 
-1. **Week 1-2:** Infrastructure & Voice ✅
-2. **Week 3-5:** AI Agents (Entity extraction, RAG, Insights)
-3. **Week 6-7:** UI Polish & Search
-4. **Week 8:** Deployment
+1. **Week 1-3:** Infrastructure, Voice & Intake Agent ✅ DONE
+2. **Week 4:** Memory Agent (Semantic Search & RAG) - NEXT
+3. **Week 5:** Insight Agent (Recommendations & Alerts)
+4. **Week 6-7:** UI Polish & Search Interface
+5. **Week 8:** Testing & Deployment
 
 ## Documentation
 
+**Main Documentation (Root Level):**
+- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Complete project overview
+- [PROJECT_TASKS.md](PROJECT_TASKS.md) - Task tracking (100+ items)
+- [FEATURES_IMPLEMENTED.md](FEATURES_IMPLEMENTED.md) - What's working now
+- [STATUS_DASHBOARD.md](STATUS_DASHBOARD.md) - Progress metrics
+- [READY_TO_TEST_WEEK3.md](READY_TO_TEST_WEEK3.md) - Testing instructions
+
+**Technical Details:**
+- [WEEK_3_INTAKE_AGENT.md](WEEK_3_INTAKE_AGENT.md) - Week 3 implementation
+- [WEEK_2_COMPLETION.md](WEEK_2_COMPLETION.md) - Week 2 implementation
 - [CLAUDE.md](CLAUDE.md) - Developer guide
-- [PROJECT_PLAN.md](prd/PROJECT_PLAN.md) - Full project plan
-- [QUICK_START_GUIDE.md](prd/QUICK_START_GUIDE.md) - Detailed setup
+
+**Detailed Reference:**
+- `additional_docs/` - 26 files with detailed documentation
 
 ## Support
 

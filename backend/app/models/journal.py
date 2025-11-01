@@ -3,6 +3,7 @@
 from sqlalchemy import Column, String, Text, ForeignKey, ARRAY, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 import uuid
 from .base import Base, TimestampMixin
 
@@ -24,7 +25,7 @@ class JournalEntry(Base, TimestampMixin):
     sentiment = Column(String(50), nullable=True)  # e.g., "positive", "negative", "neutral"
 
     # Vector embedding (1536 dimensions for OpenAI text-embedding-3-small)
-    embedding = Column(String, nullable=True)
+    embedding = Column(Vector(1536), nullable=True)
 
     # Session tracking
     session_id = Column(UUID(as_uuid=True), nullable=True)
