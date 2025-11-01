@@ -14,7 +14,7 @@ export default function JournalInput() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [extractedData, setExtractedData] = useState<any>(null)
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const { addEntry, setError, suggestionMode } = useStore()
+  const { addEntry, setError, suggestionMode, addTask } = useStore()
 
   // First phase: Extract data from text (before Save Entry click)
   const handleExtractData = async () => {
@@ -130,6 +130,8 @@ export default function JournalInput() {
 
               const createdTask = await response.json()
               console.log('[Tasks] Successfully created task:', taskTitle, createdTask)
+              // Update store so task appears immediately in TaskPanel
+              addTask(createdTask)
               tasksCreated++
             } catch (err: any) {
               console.error('[Tasks] Error creating task:', task.task || task.title, err)
