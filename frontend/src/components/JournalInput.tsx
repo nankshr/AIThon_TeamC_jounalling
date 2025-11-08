@@ -14,6 +14,7 @@ export default function JournalInput() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [extractedData, setExtractedData] = useState<any>(null)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [autoMode, setAutoMode] = useState(true) // Auto-generate suggestions
   const { addEntry, setError, suggestionMode, addTask } = useStore()
 
   // First phase: Extract data from text (before Save Entry click)
@@ -172,14 +173,84 @@ export default function JournalInput() {
     }
   }
 
-  const handleTranscriptionComplete = (transcribedText: string, language: string) => {
+  const handleTranscriptionComplete = async (transcribedText: string, language: string) => {
     setText(transcribedText)
     setError(null)
+
+    // Auto-generate suggestions if auto mode is enabled
+    if (autoMode && transcribedText.trim()) {
+      // Small delay to ensure text state is updated
+      setTimeout(() => {
+        handleExtractDataFromText(transcribedText)
+      }, 100)
+    }
+  }
+
+  // Helper to extract data from specific text (used by auto mode)
+  const handleExtractDataFromText = async (textToProcess: string) => {
+    if (!textToProcess.trim()) return
+
+    setIsProcessing(true)
+    try {
+      console.log('Sending journal entry to Intake Agent for processing...')
+      const response = await fetch(`${API_URL}/api/journal/entries`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: textToProcess,
+          language: 'en',
+          transcribed_from_audio: true,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to process entry')
+      }
+
+      const result = await response.json()
+      console.log('Intake Agent result:', result)
+
+      if (result.success && result.data) {
+        console.log('Full extracted data:', result.data)
+        setExtractedData(result.data)
+        setShowSuggestions(true)
+        console.log('Extracted entities:', result.data.entities)
+        console.log('Extracted tasks:', result.data.tasks)
+        console.log('Sentiment:', result.data.sentiment)
+        console.log('Tasks count:', result.data.tasks?.explicit?.length || 0)
+      }
+    } catch (error: any) {
+      console.error('Extraction error:', error)
+      setError(`Failed to extract data: ${error.message}`)
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">New Journal Entry</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-gray-900">New Journal Entry</h2>
+
+        {/* Auto Mode Toggle */}
+        <div className="flex items-center gap-2">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoMode}
+              onChange={(e) => setAutoMode(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <span className="ml-2 text-sm font-medium text-gray-700">
+              {autoMode ? '⚡ Auto Mode' : 'Manual Mode'}
+            </span>
+          </label>
+        </div>
+      </div>
 
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -188,6 +259,7 @@ export default function JournalInput() {
         <VoiceRecorder
           onTranscriptionComplete={handleTranscriptionComplete}
           isLoading={isSubmitting}
+          autoTranscribe={autoMode}
         />
       </div>
 
@@ -215,8 +287,8 @@ export default function JournalInput() {
           </div>
         )}
 
-        {/* Get AI Suggestions Button */}
-        {text.trim() && !showSuggestions && !isProcessing && (
+        {/* Get AI Suggestions Button - Only show in Manual Mode */}
+        {!autoMode && text.trim() && !showSuggestions && !isProcessing && (
           <button
             type="button"
             onClick={handleExtractData}
@@ -225,6 +297,13 @@ export default function JournalInput() {
           >
             <span>✨ Get AI Suggestions</span>
           </button>
+        )}
+
+        {/* Auto Mode Info */}
+        {autoMode && text.trim() && !showSuggestions && !isProcessing && (
+          <div className="w-full px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-center text-sm text-blue-700">
+            ⚡ Auto mode enabled - AI suggestions will appear automatically after voice recording
+          </div>
         )}
 
         {/* Extracted data display - PERSISTENT */}
@@ -312,37 +391,112 @@ export default function JournalInput() {
             {/* Suggested Entities */}
             {(extractedData.entities?.vendors?.length > 0 ||
               extractedData.entities?.costs?.length > 0 ||
-              extractedData.entities?.dates?.length > 0) && (
+              extractedData.entities?.dates?.length > 0 ||
+              extractedData.entities?.people?.length > 0) && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm font-bold text-blue-900 mb-3">📋 Extracted Information:</p>
                 <div className="space-y-2 text-xs">
                   {extractedData.entities?.vendors?.length > 0 && (
-                    <p className="text-blue-800">
-                      <strong>🏢 Vendors:</strong> {extractedData.entities.vendors.map((v: any) => {
-                        if (typeof v === 'string') return v;
-                        if (v && typeof v === 'object') {
-                          return v.name || v.vendor || v.title || JSON.stringify(v);
-                        }
-                        return String(v);
-                      }).join(', ')}
-                    </p>
+                    <div className="text-blue-800">
+                      <strong>🏢 Vendors:</strong>
+                      <ul className="ml-4 mt-1 space-y-1">
+                        {extractedData.entities.vendors.map((v: any, idx: number) => {
+                          // Handle string vendors
+                          if (typeof v === 'string') {
+                            return <li key={idx} className="list-disc">• {v}</li>;
+                          }
+
+                          // Handle object vendors - extract only non-null values
+                          if (v && typeof v === 'object') {
+                            const parts = [];
+
+                            // Add name if available
+                            if (v.name) parts.push(v.name);
+                            else if (v.vendor) parts.push(v.vendor);
+                            else if (v.title) parts.push(v.title);
+
+                            // Add category if available
+                            if (v.category) parts.push(`(${v.category})`);
+
+                            // Add status if available
+                            if (v.status) parts.push(`- Status: ${v.status}`);
+
+                            // Add cost if available
+                            if (v.cost) parts.push(`- Cost: ₹${v.cost.toLocaleString('en-IN')}`);
+
+                            // If we have any parts, show them, otherwise show "Unknown vendor"
+                            const displayText = parts.length > 0 ? parts.join(' ') : 'Vendor mentioned (details pending)';
+                            return <li key={idx} className="list-disc">• {displayText}</li>;
+                          }
+
+                          return <li key={idx} className="list-disc">• {String(v)}</li>;
+                        })}
+                      </ul>
+                    </div>
                   )}
                   {extractedData.entities?.costs?.length > 0 && (
-                    <p className="text-blue-800">
-                      <strong>💰 Total Budget:</strong> ₹{extractedData.entities.costs.reduce((sum: number, c: any) => sum + (c.amount || 0), 0).toLocaleString('en-IN')}
-                    </p>
+                    <div className="text-blue-800">
+                      <strong>💰 Costs:</strong>
+                      <ul className="ml-4 mt-1 space-y-1">
+                        {extractedData.entities.costs.map((c: any, idx: number) => {
+                          const parts = [];
+
+                          // Add description/category if available
+                          if (c.description) parts.push(c.description);
+                          else if (c.category) parts.push(c.category);
+                          else if (c.item) parts.push(c.item);
+
+                          // Add amount if available
+                          if (c.amount) parts.push(`₹${c.amount.toLocaleString('en-IN')}`);
+
+                          const displayText = parts.length > 0 ? parts.join(': ') : 'Cost mentioned';
+                          return <li key={idx} className="list-disc">• {displayText}</li>;
+                        })}
+                      </ul>
+                    </div>
                   )}
                   {extractedData.entities?.dates?.length > 0 && (
-                    <p className="text-blue-800">
-                      <strong>📅 Important Dates:</strong> {extractedData.entities.dates.map((d: any) => {
-                        const dateStr = d.date || d;
-                        try {
-                          return new Date(dateStr).toLocaleDateString('en-IN');
-                        } catch {
-                          return dateStr;
-                        }
-                      }).join(', ')}
-                    </p>
+                    <div className="text-blue-800">
+                      <strong>📅 Important Dates:</strong>
+                      <ul className="ml-4 mt-1 space-y-1">
+                        {extractedData.entities.dates.map((d: any, idx: number) => {
+                          const dateStr = d.date || d;
+                          const description = d.description || d.event || '';
+
+                          try {
+                            const formattedDate = new Date(dateStr).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            });
+                            const displayText = description ? `${formattedDate} - ${description}` : formattedDate;
+                            return <li key={idx} className="list-disc">• {displayText}</li>;
+                          } catch {
+                            return <li key={idx} className="list-disc">• {dateStr}</li>;
+                          }
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  {extractedData.entities?.people?.length > 0 && (
+                    <div className="text-blue-800">
+                      <strong>👥 People Mentioned:</strong>
+                      <ul className="ml-4 mt-1 space-y-1">
+                        {extractedData.entities.people.map((p: any, idx: number) => {
+                          if (typeof p === 'string') {
+                            return <li key={idx} className="list-disc">• {p}</li>;
+                          }
+
+                          const parts = [];
+                          if (p.name) parts.push(p.name);
+                          if (p.role) parts.push(`(${p.role})`);
+                          if (p.relationship) parts.push(`- ${p.relationship}`);
+
+                          const displayText = parts.length > 0 ? parts.join(' ') : 'Person mentioned';
+                          return <li key={idx} className="list-disc">• {displayText}</li>;
+                        })}
+                      </ul>
+                    </div>
                   )}
                 </div>
               </div>

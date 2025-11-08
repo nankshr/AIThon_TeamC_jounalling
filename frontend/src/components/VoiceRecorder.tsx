@@ -9,11 +9,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string, language: string) => void;
   isLoading?: boolean;
+  autoTranscribe?: boolean; // Auto-transcribe when recording stops
 }
 
 export function VoiceRecorder({
   onTranscriptionComplete,
   isLoading = false,
+  autoTranscribe = true, // Default to auto mode
 }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -47,8 +49,11 @@ export function VoiceRecorder({
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
+      if (uploadedAudioUrl) {
+        URL.revokeObjectURL(uploadedAudioUrl);
+      }
     };
-  }, [audioUrl]);
+  }, [audioUrl, uploadedAudioUrl]);
 
   const startRecording = async () => {
     try {
@@ -96,12 +101,19 @@ export function VoiceRecorder({
         clearInterval(timerIntervalRef.current);
       }
 
-      // Create audio URL for playback
+      // Create audio URL for playback and auto-transcribe if enabled
       setTimeout(() => {
         if (audioChunksRef.current.length > 0) {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           const url = URL.createObjectURL(audioBlob);
           setAudioUrl(url);
+
+          // Auto-transcribe if enabled
+          if (autoTranscribe) {
+            setTimeout(() => {
+              submitAudio();
+            }, 200); // Small delay to ensure state is updated
+          }
         }
       }, 100);
     }
@@ -122,15 +134,24 @@ export function VoiceRecorder({
   };
 
   const resetRecording = () => {
+    // Pause and clear audio element BEFORE revoking URL
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.src = '';
+      audioPlayerRef.current.load(); // Reset the audio element
+    }
+
+    // Now it's safe to revoke the blob URL
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+
     audioChunksRef.current = [];
     setAudioUrl(null);
     setRecordingTime(0);
     setPlaybackTime(0);
     setIsPlaying(false);
     setError(null);
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.currentTime = 0;
-    }
   };
 
   const submitAudio = async () => {
@@ -237,6 +258,18 @@ export function VoiceRecorder({
   };
 
   const resetUpload = () => {
+    // Pause and clear upload audio element BEFORE revoking URL
+    if (uploadPlayerRef.current) {
+      uploadPlayerRef.current.pause();
+      uploadPlayerRef.current.src = '';
+      uploadPlayerRef.current.load(); // Reset the audio element
+    }
+
+    // Now it's safe to revoke the blob URL
+    if (uploadedAudioUrl) {
+      URL.revokeObjectURL(uploadedAudioUrl);
+    }
+
     setUploadedFile(null);
     setUploadedAudioUrl(null);
     setUploadedDuration(0);
@@ -244,9 +277,6 @@ export function VoiceRecorder({
     setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
-    }
-    if (uploadPlayerRef.current) {
-      uploadPlayerRef.current.currentTime = 0;
     }
   };
 
@@ -308,6 +338,15 @@ export function VoiceRecorder({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+      {/* Auto-Transcribe Indicator */}
+      {autoTranscribe && !uploadMode && (
+        <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+          <span className="text-xs font-medium text-green-700">
+            ⚡ Auto-transcribe enabled - Recording will transcribe automatically when stopped
+          </span>
+        </div>
+      )}
+
       {/* Error Message */}
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
